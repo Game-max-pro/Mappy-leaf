@@ -199,7 +199,7 @@
         </div>
     </div>
 
-    <script>
+        <script>
         const container = document.getElementById('game-container');
         const leafElement = document.getElementById('leaf');
         const scoreBoard = document.getElementById('score-board');
@@ -210,8 +210,9 @@
 
         // Game tuning parameters
         const WINNING_SCORE = 1000; 
-        const gravity = 0.25;
-        const jumpPower = -5.5;
+        const BASE_SPEED = 0.15; // Pixels per millisecond
+        const JUMP_VELOCITY = -0.33; 
+        const GRAVITY_ACCEL = 0.014;
         const gameWidth = 360;
         const gameHeight = 500;
 
@@ -222,13 +223,15 @@
         let isGameRunning = false;
         let branches = [];
         let houseWindow = null;
-        let frameCount = 0;
+        
+        let lastTime = 0;
+        let spawnTimer = 0;
 
         function startGame() {
             leafY = 200;
             velocity = 0;
             score = 0;
-            frameCount = 0;
+            spawnTimer = 0;
             isGameRunning = true;
             scoreBoard.innerText = "0";
 
@@ -246,16 +249,18 @@
             gameOverScreen.style.display = 'none';
             victoryScreen.style.display = 'none';
 
-            // Cancel any previous frames and initiate the smooth browser sync engine loop
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
             }
+            
+            // Capture the exact starting time point
+            lastTime = performance.now();
             animationFrameId = requestAnimationFrame(updateGame);
         }
 
         function leafJump() {
             if (isGameRunning) {
-                velocity = jumpPower;
+                velocity = JUMP_VELOCITY;
             }
         }
 
@@ -313,16 +318,22 @@
             };
         }
 
-        function updateGame() {
+        function updateGame(currentTime) {
             if (!isGameRunning) return;
 
-            frameCount++;
+            // Calculate delta time (exact time elapsed since last frame)
+            let dt = currentTime - lastTime;
+            lastTime = currentTime;
 
-            velocity += gravity;
-            leafY += velocity;
+            // Prevent massive physics skips if tab is hidden or backgrounded
+            if (dt > 100) dt = 16; 
+
+            // Physics movement calculations tied strictly to time (dt)
+            velocity += GRAVITY_ACCEL * dt;
+            leafY += velocity * dt;
             leafElement.style.top = leafY + 'px';
 
-            let rotation = Math.min(Math.max(velocity * 4, -30), 70);
+            let rotation = Math.min(Math.max(velocity * 240, -30), 70);
             leafElement.style.transform = `rotate(${rotation}deg)`;
 
             if (leafY < 0 || leafY > gameHeight - 34) {
@@ -331,17 +342,20 @@
             }
 
             if (score < WINNING_SCORE - 1) {
-                // Adjusting obstacle spawn timing to match requestAnimationFrame standard refresh rates
-                if (frameCount % 90 === 0) {
+                spawnTimer += dt;
+                // Spawns a branch every 1800ms regardless of screen hz
+                if (spawnTimer >= 1800) {
                     createBranches();
+                    spawnTimer = 0;
                 }
             } else if (!houseWindow && branches.length === 0) {
                 createHouseWindow();
             }
 
+            // Move branches using Delta Time
             for (let i = branches.length - 1; i >= 0; i--) {
                 let b = branches[i];
-                b.x -= 2.5; 
+                b.x -= BASE_SPEED * dt; 
                 b.topEl.style.left = b.x + 'px';
                 b.bottomEl.style.left = b.x + 'px';
 
@@ -365,8 +379,9 @@
                 }
             }
 
+            // Move final house window using Delta Time
             if (houseWindow) {
-                houseWindow.x -= 2.5;
+                houseWindow.x -= BASE_SPEED * dt;
                 houseWindow.el.style.left = houseWindow.x + 'px';
 
                 if (houseWindow.x < 50 + 34 && houseWindow.x + houseWindow.width > 50) {
@@ -389,7 +404,6 @@
                 }
             }
 
-            // Loop smoothly at the smartphone's native screen frequency
             animationFrameId = requestAnimationFrame(updateGame);
         }
 
@@ -418,5 +432,6 @@
             leafJump();
         }, { passive: true });
     </script>
+
 </body>
 </html>
