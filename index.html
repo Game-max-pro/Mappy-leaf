@@ -43,21 +43,21 @@
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
             touch-action: none;
         }
-
-        #leaf {
-            position: absolute;
-            left: 50px;
-            top: 200px;
-            width: 34px;
-            height: 34px;
-            font-size: 2rem;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 5;
-            transform-origin: center;
-        }
+#leaf {
+    position: absolute;
+    left: 50px;
+    top: 200px;
+    width: 34px;
+    height: 34px;
+    font-size: 2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    transform-origin: center;
+    will-change: transform, top; /* Fixes mobile frame stuttering */
+}
 
         .branch {
             position: absolute;
